@@ -1,0 +1,10 @@
+com\ecommerce\cartservice\controller\CartController.class
+com\ecommerce\cartservice\service\CartService.class
+com\ecommerce\cartservice\config\OpenAPIConfig.class
+com\ecommerce\cartservice\AddToCartRequest.class
+com\ecommerce\cartservice\CartServiceApplication.class
+com\ecommerce\cartservice\entity\CartItem.class
+com\ecommerce\cartservice\CartResponse.class
+com\ecommerce\cartservice\CartItem.class
+com\ecommerce\cartservice\Cart.class
+com\ecommerce\cartservice\repository\CartItemRepository.class

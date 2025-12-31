@@ -1,0 +1,231 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # MySQL Databases
+  # ============================================
+  
+  product-db:
+    image: mysql:8.0
+    container_name: product-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: product_db
+      MYSQL_USER: product_user
+      MYSQL_PASSWORD: product123
+    ports:
+      - "3307:3306"
+    volumes:
+      - product-db-data:/var/lib/mysql
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-db:
+    image: mysql:8.0
+    container_name: user-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: user_db
+      MYSQL_USER: user_user
+      MYSQL_PASSWORD: user123
+    ports:
+      - "3308:3306"
+    volumes:
+      - user-db-data:/var/lib/mysql
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cart-db:
+    image: mysql:8.0
+    container_name: cart-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: cart_db
+      MYSQL_USER: cart_user
+      MYSQL_PASSWORD: cart123
+    ports:
+      - "3309:3306"
+    volumes:
+      - cart-db-data:/var/lib/mysql
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-db:
+    image: mysql:8.0
+    container_name: order-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: order_db
+      MYSQL_USER: order_user
+      MYSQL_PASSWORD: order123
+    ports:
+      - "3310:3306"
+    volumes:
+      - order-db-data:/var/lib/mysql
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payment-db:
+    image: mysql:8.0
+    container_name: payment-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: payment_db
+      MYSQL_USER: payment_user
+      MYSQL_PASSWORD: payment123
+    ports:
+      - "3311:3306"
+    volumes:
+      - payment-db-data:/var/lib/mysql
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================================
+  # Microservices
+  # ============================================
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://product-db:3306/product_db
+      SPRING_DATASOURCE_USERNAME: product_user
+      SPRING_DATASOURCE_PASSWORD: product123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      product-db:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: on-failure
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/user_db
+      SPRING_DATASOURCE_USERNAME: user_user
+      SPRING_DATASOURCE_PASSWORD: user123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    depends_on:
+      user-db:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: on-failure
+
+  cart-service:
+    build: ./cart-service
+    container_name: cart-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://cart-db:3306/cart_db
+      SPRING_DATASOURCE_USERNAME: cart_user
+      SPRING_DATASOURCE_PASSWORD: cart123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      PRODUCT_SERVICE_URL: http://product-service:8081
+      USER_SERVICE_URL: http://user-service:8082
+    depends_on:
+      cart-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+    networks:
+      - ecommerce-network
+    restart: on-failure
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://order-db:3306/order_db
+      SPRING_DATASOURCE_USERNAME: order_user
+      SPRING_DATASOURCE_PASSWORD: order123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      PRODUCT_SERVICE_URL: http://product-service:8081
+      CART_SERVICE_URL: http://cart-service:8083
+      PAYMENT_SERVICE_URL: http://payment-service:8085
+      USER_SERVICE_URL: http://user-service:8082
+    depends_on:
+      order-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+    networks:
+      - ecommerce-network
+    restart: on-failure
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://payment-db:3306/payment_db
+      SPRING_DATASOURCE_USERNAME: payment_user
+      SPRING_DATASOURCE_PASSWORD: payment123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      ORDER_SERVICE_URL: http://order-service:8084
+    depends_on:
+      payment-db:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+    restart: on-failure
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  ecommerce-network:
+    driver: bridge
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  product-db-data:
+  user-db-data:
+  cart-db-data:
+  order-db-data:
+  payment-db-data:

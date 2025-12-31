@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring Ecommerce - Testing Dashboard</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // API Base URLs
+        const API_URLS = {
+            product: 'http://localhost:8081/api/products',
+            user: 'http://localhost:8082/api/users',
+            cart: 'http://localhost:8083/api/cart',
+            order: 'http://localhost:8084/api/orders',
+            payment: 'http://localhost:8085/api/payments'
+        };
+
+        function App() {
+            const [currentView, setCurrentView] = useState('products');
+            const [products, setProducts] = useState([]);
+            const [users, setUsers] = useState([]);
+            const [cart, setCart] = useState([]);
+            const [orders, setOrders] = useState([]);
+            const [currentUser, setCurrentUser] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [message, setMessage] = useState({ text: '', type: '' });
+
+            // Show message
+            const showMessage = (text, type = 'info') => {
+                setMessage({ text, type });
+                setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+            };
+
+            // Load Products
+            const loadProducts = async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch(API_URLS.product);
+                    const data = await response.json();
+                    setProducts(data);
+                    showMessage('Products loaded successfully!', 'success');
+                } catch (error) {
+                    showMessage('Failed to load products: ' + error.message, 'error');
+                }
+                setLoading(false);
+            };
+
+            // Create Product
+            const createProduct = async (product) => {
+                try {
+                    const response = await fetch(API_URLS.product, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(product)
+                    });
+                    const data = await response.json();
+                    setProducts([...products, data]);
+                    showMessage('Product created successfully!', 'success');
+                } catch (error) {
+                    showMessage('Failed to create product: ' + error.message, 'error');
+                }
+            };
+
+            // Create User
+            const createUser = async (user) => {
+                try {
+                    const response = await fetch(API_URLS.user, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(user)
+                    });
+                    const data = await response.json();
+                    setUsers([...users, data]);
+                    showMessage('User created successfully!', 'success');
+                } catch (error) {
+                    showMessage('Failed to create user: ' + error.message, 'error');
+                }
+            };
+
+            // Add to Cart
+            const addToCart = async (productId, quantity) => {
+                if (!currentUser) {
+                    showMessage('Please select a user first!', 'warning');
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_URLS.cart}/${currentUser.id}/items`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId, quantity })
+                    });
+                    const data = await response.json();
+                    setCart([...cart, data]);
+                    showMessage('Added to cart!', 'success');
+                } catch (error) {
+                    showMessage('Failed to add to cart: ' + error.message, 'error');
+                }
+            };
+
+            // Create Order
+            const createOrder = async (orderData) => {
+                try {
+                    const response = await fetch(API_URLS.order, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(orderData)
+                    });
+                    const data = await response.json();
+                    setOrders([...orders, data]);
+                    showMessage('Order created successfully!', 'success');
+                } catch (error) {
+                    showMessage('Failed to create order: ' + error.message, 'error');
+                }
+            };
+
+            useEffect(() => {
+                loadProducts();
+            }, []);
+
+            return (
+                <div className="min-h-screen p-6">
+                    {/* Header */}
+                    <div className="max-w-7xl mx-auto mb-6">
+                        <div className="bg-white rounded-lg shadow-xl p-6">
+                            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                                🛍️ Spring Ecommerce Testing Dashboard
+                            </h1>
+                            <p className="text-gray-600">Test your microservices architecture</p>
+                            
+                            {currentUser && (
+                                <div className="mt-4 flex items-center gap-2 text-sm">
+                                    <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full">
+                                        👤 {currentUser.firstName} {currentUser.lastName} ({currentUser.role})
+                                    </span>
+                                    <button 
+                                        onClick={() => setCurrentUser(null)}
+                                        className="px-3 py-1 bg-red-100 text-red-700 rounded-full hover:bg-red-200"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Message Alert */}
+                    {message.text && (
+                        <div className="max-w-7xl mx-auto mb-4">
+                            <div className={`p-4 rounded-lg ${
+                                message.type === 'success' ? 'bg-green-100 text-green-800' :
+                                message.type === 'error' ? 'bg-red-100 text-red-800' :
+                                message.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-blue-100 text-blue-800'
+                            }`}>
+                                {message.text}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Navigation */}
+                    <div className="max-w-7xl mx-auto mb-6">
+                        <div className="bg-white rounded-lg shadow-xl p-4">
+                            <div className="flex flex-wrap gap-2">
+                                {['products', 'users', 'cart', 'orders', 'payments', 'api-test'].map(view => (
+                                    <button
+                                        key={view}
+                                        onClick={() => setCurrentView(view)}
+                                        className={`px-6 py-2 rounded-lg font-medium transition ${
+                                            currentView === view
+                                                ? 'bg-purple-600 text-white shadow-lg'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {view.charAt(0).toUpperCase() + view.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="max-w-7xl mx-auto">
+                        <div className="bg-white rounded-lg shadow-xl p-6">
+                            {currentView === 'products' && (
+                                <ProductsView 
+                                    products={products} 
+                                    createProduct={createProduct}
+                                    addToCart={addToCart}
+                                    loadProducts={loadProducts}
+                                />
+                            )}
+                            {currentView === 'users' && (
+                                <UsersView 
+                                    users={users}
+                                    createUser={createUser}
+                                    setCurrentUser={setCurrentUser}
+                                    currentUser={currentUser}
+                                />
+                            )}
+                            {currentView === 'cart' && (
+                                <CartView cart={cart} currentUser={currentUser} />
+                            )}
+                            {currentView === 'orders' && (
+                                <OrdersView 
+                                    orders={orders}
+                                    createOrder={createOrder}
+                                    currentUser={currentUser}
+                                />
+                            )}
+                            {currentView === 'payments' && (
+                                <PaymentsView currentUser={currentUser} />
+                            )}
+                            {currentView === 'api-test' && (
+                                <ApiTestView />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Products View Component
+        function ProductsView({ products, createProduct, addToCart, loadProducts }) {
+            const [showForm, setShowForm] = useState(false);
+            const [formData, setFormData] = useState({
+                name: '',
+                description: '',
+                price: '',
+                stockQuantity: '',
+                category: '',
+                brand: '',
+                imageUrl: '',
+                isActive: true
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                createProduct({
+                    ...formData,
+                    price: parseFloat(formData.price),
+                    stockQuantity: parseInt(formData.stockQuantity)
+                });
+                setShowForm(false);
+                setFormData({
+                    name: '', description: '', price: '', stockQuantity: '',
+                    category: '', brand: '', imageUrl: '', isActive: true
+                });
+            };
+
+            return (
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">Products Catalog</h2>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={loadProducts}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
+                                🔄 Refresh
+                            </button>
+                            <button
+                                onClick={() => setShowForm(!showForm)}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            >
+                                ➕ Add Product
+                            </button>
+                        </div>
+                    </div>
+
+                    {showForm && (
+                        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-4">Create New Product</h3>
+                            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+                                <input
+                                    type="text"
+                                    placeholder="Product Name"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                    className="p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Brand"
+                                    value={formData.brand}
+                                    onChange={(e) => setFormData({...formData, brand: e.target.value})}
+                                    className="p-2 border rounded"
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Price"
+                                    value={formData.price}
+                                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                                    className="p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Stock Quantity"
+                                    value={formData.stockQuantity}
+                                    onChange={(e) => setFormData({...formData, stockQuantity: e.target.value})}
+                                    className="p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Category"
+                                    value={formData.category}
+                                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                    className="p-2 border rounded"
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Image URL"
+                                    value={formData.imageUrl}
+                                    onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                                    className="p-2 border rounded"
+                                />
+                                <textarea
+                                    placeholder="Description"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    className="p-2 border rounded col-span-2"
+                                    rows="3"
+                                />
+                                <button type="submit" className="col-span-2 p-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                    Create Product
+                                </button>
+                            </form>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {products.map(product => (
+                            <div key={product.id} className="border rounded-lg p-4 hover:shadow-lg transition">
+                                <div className="h-48 bg-gray-200 rounded mb-3 flex items-center justify-center">
+                                    {product.imageUrl ? (
+                                        <img src={product.imageUrl} alt={product.name} className="h-full object-cover" />
+                                    ) : (
+                                        <span className="text-4xl">📦</span>
+                                    )}
+                                </div>
+                                <h3 className="font-bold text-lg mb-1">{product.name}</h3>
+                                <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+                                <p className="text-sm text-gray-500 mb-3 line-clamp-2">{product.description}</p>
+                                <div className="flex justify-between items-center mb-3">
+                                    <span className="text-xl font-bold text-green-600">${product.price}</span>
+                                    <span className="text-sm text-gray-500">Stock: {product.stockQuantity}</span>
+                                </div>
+                                <button
+                                    onClick={() => addToCart(product.id, 1)}
+                                    className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                                >
+                                    🛒 Add to Cart
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    {products.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                            <p className="text-xl mb-2">📦 No products available</p>
+                            <p>Click "Add Product" to create your first product</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Users View Component
+        function UsersView({ users, createUser, setCurrentUser, currentUser }) {
+            const [showForm, setShowForm] = useState(false);
+            const [formData, setFormData] = useState({
+                firstName: '',
+                lastName: '',
+                email: '',
+                password: '',
+                phoneNumber: '',
+                role: 'CUSTOMER'
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                createUser(formData);
+                setShowForm(false);
+                setFormData({
+                    firstName: '', lastName: '', email: '', password: '',
+                    phoneNumber: '', role: 'CUSTOMER'
+                });
+            };
+
+            return (
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
+                        <button
+                            onClick={() => setShowForm(!showForm)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        >
+                            ➕ Add User
+                        </button>
+                    </div>
+
+                    {showForm && (
+                        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-4">Create New User</h3>
+                            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
+                                <input
+                                    type="text"
+                                    placeholder="First Name"
+                                    value={formData.firstName}
+                                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                                    className="p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Last Name"
+                                    value={formData.lastName}
+                                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                                    className="p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="email"
+                                    placeholder="Email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                    className="p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                    className="p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="tel"
+                                    placeholder="Phone Number"
+                                    value={formData.phoneNumber}
+                                    onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
+                                    className="p-2 border rounded"
+                                />
+                                <select
+                                    value={formData.role}
+                                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                    className="p-2 border rounded"
+                                >
+                                    <option value="CUSTOMER">Customer</option>
+                                    <option value="ADMIN">Admin</option>
+                                    <option value="SELLER">Seller</option>
+                                </select>
+                                <button type="submit" className="col-span-2 p-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                    Create User
+                                </button>
+                            </form>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {users.map(user => (
+                            <div key={user.id} className={`border rounded-lg p-4 hover:shadow-lg transition ${
+                                currentUser?.id === user.id ? 'border-green-500 bg-green-50' : ''
+                            }`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="w-12 h-12 bg-purple-200 rounded-full flex items-center justify-center text-xl">
+                                        👤
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-xs ${
+                                        user.role === 'ADMIN' ? 'bg-red-100 text-red-700' :
+                                        user.role === 'SELLER' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-green-100 text-green-700'
+                                    }`}>
+                                        {user.role}
+                                    </span>
+                                </div>
+                                <h3 className="font-bold text-lg mb-1">{user.firstName} {user.lastName}</h3>
+                                <p className="text-sm text-gray-600 mb-1">{user.email}</p>
+                                <p className="text-sm text-gray-500 mb-3">{user.phoneNumber}</p>
+                                <button
+                                    onClick={() => setCurrentUser(user)}
+                                    className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                                    disabled={currentUser?.id === user.id}
+                                >
+                                    {currentUser?.id === user.id ? '✓ Active User' : 'Select User'}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    {users.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                            <p className="text-xl mb-2">👥 No users available</p>
+                            <p>Click "Add User" to create your first user</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Cart View Component
+        function CartView({ cart, currentUser }) {
+            if (!currentUser) {
+                return (
+                    <div className="text-center py-12">
+                        <p className="text-xl text-gray-500 mb-2">🛒 Shopping Cart</p>
+                        <p className="text-gray-400">Please select a user first to view cart</p>
+                    </div>
+                );
+            }
+
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Shopping Cart</h2>
+                    
+                    {cart.length === 0 ? (
+                        <div className="text-center py-12 text-gray-500">
+                            <p className="text-xl mb-2">🛒 Your cart is empty</p>
+                            <p>Add some products to get started</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-4 mb-6">
+                                {cart.map(item => (
+                                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                        <div>
+                                            <h3 className="font-semibold">Product ID: {item.productId}</h3>
+                                            <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-lg">${(item.price * item.quantity).toFixed(2)}</p>
+                                            <p className="text-sm text-gray-500">${item.price} each</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            <div className="border-t pt-4">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-xl font-bold">Total:</span>
+                                    <span className="text-2xl font-bold text-green-600">${total.toFixed(2)}</span>
+                                </div>
+                                <button className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                                    Checkout
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        }
+
+        // Orders View Component
+        function OrdersView({ orders, createOrder, currentUser }) {
+            const [showForm, setShowForm] = useState(false);
+            const [formData, setFormData] = useState({
+                userId: '',
+                totalAmount: '',
+                status: 'PENDING',
+                shippingAddress: ''
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                createOrder({
+                    ...formData,
+                    userId: parseInt(formData.userId),
+                    totalAmount: parseFloat(formData.totalAmount)
+                });
+                setShowForm(false);
+                setFormData({
+                    userId: '', totalAmount: '', status: 'PENDING', shippingAddress: ''
+                });
+            };
+
+            return (
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-gray-800">Orders</h2>
+                        <button
+                            onClick={() => setShowForm(!showForm)}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        >
+                            ➕ Create Order
+                        </button>
+                    </div>
+
+                    {showForm && (
+                        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <h3 className="text-lg font-semibold mb-4">Create New Order</h3>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <input
+                                    type="number"
+                                    placeholder="User ID"
+                                    value={formData.userId}
+                                    onChange={(e) => setFormData({...formData, userId: e.target.value})}
+                                    className="w-full p-2 border rounded"
+                                    required
+                                />
+                                <input
+                                    type="number"
+                                    placeholder="Total Amount"
+                                    value={formData.totalAmount}
+                                    onChange={(e) => setFormData({...formData, totalAmount: e.target.value})}
+                                    className="w-full p-2 border rounded"
+                                    required
+                                />
+                                <select
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                    className="w-full p-2 border rounded"
+                                >
+                                    <option value="PENDING">Pending</option>
+                                    <option value="CONFIRMED">Confirmed</option>
+                                    <option value="SHIPPED">Shipped</option>
+                                    <option value="DELIVERED">Delivered</option>
+                                    <option value="CANCELLED">Cancelled</option>
+                                </select>
+                                <textarea
+                                    placeholder="Shipping Address"
+                                    value={formData.shippingAddress}
+                                    onChange={(e) => setFormData({...formData, shippingAddress: e.target.value})}
+                                    className="w-full p-2 border rounded"
+                                    rows="3"
+                                />
+                                <button type="submit" className="w-full p-2 bg-green-600 text-white rounded hover:bg-green-700">
+                                    Create Order
+                                </button>
+                            </form>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        {orders.map(order => (
+                            <div key={order.id} className="border rounded-lg p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h3 className="font-bold text-lg">Order #{order.id}</h3>
+                                        <p className="text-sm text-gray-600">User ID: {order.userId}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-sm ${
+                                        order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
+                                        order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-700' :
+                                        order.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
+                                        'bg-yellow-100 text-yellow-700'
+                                    }`}>
+                                        {order.status}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-gray-500 mb-2">{order.shippingAddress}</p>
+                                <p className="text-xl font-bold text-green-600">${order.totalAmount}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {orders.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                            <p className="text-xl mb-2">📦 No orders yet</p>
+                            <p>Create an order to get started</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // Payments View Component
+        function PaymentsView({ currentUser }) {
+            const [amount, setAmount] = useState('');
+            const [method, setMethod] = useState('CREDIT_CARD');
+            const [orderId, setOrderId] = useState('');
+            const [message, setMessage] = useState('');
+
+            const handlePayment = async (e) => {
+                e.preventDefault();
+                try {
+                    const response = await fetch(API_URLS.payment, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            orderId: parseInt(orderId),
+                            amount: parseFloat(amount),
+                            paymentMethod: method,
+                            status: 'COMPLETED'
+                        })
+                    });
+                    const data = await response.json();
+                    setMessage('Payment processed successfully! ID: ' + data.id);
+                    setAmount('');
+                    setOrderId('');
+                } catch (error) {
+                    setMessage('Payment failed: ' + error.message);
+                }
+            };
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Payment Processing</h2>
+                    
+                    <div className="max-w-md mx-auto">
+                        <form onSubmit={handlePayment} className="space-y-4 p-6 bg-gray-50 rounded-lg">
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Order ID</label>
+                                <input
+                                    type="number"
+                                    placeholder="Enter Order ID"
+                                    value={orderId}
+                                    onChange={(e) => setOrderId(e.target.value)}
+                                    className="w-full p-3 border rounded-lg"
+                                    required
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Amount</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    className="w-full p-3 border rounded-lg"
+                                    required
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium mb-2">Payment Method</label>
+                                <select
+                                    value={method}
+                                    onChange={(e) => setMethod(e.target.value)}
+                                    className="w-full p-3 border rounded-lg"
+                                >
+                                    <option value="CREDIT_CARD">💳 Credit Card</option>
+                                    <option value="DEBIT_CARD">💳 Debit Card</option>
+                                    <option value="PAYPAL">🅿️ PayPal</option>
+                                    <option value="UPI">📱 UPI</option>
+                                </select>
+                            </div>
+                            
+                            <button
+                                type="submit"
+                                className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+                            >
+                                💰 Process Payment
+                            </button>
+                        </form>
+                        
+                        {message && (
+                            <div className="mt-4 p-4 bg-blue-100 text-blue-800 rounded-lg">
+                                {message}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // API Test View Component
+        function ApiTestView() {
+            const [endpoint, setEndpoint] = useState('http://localhost:8081/api/products');
+            const [method, setMethod] = useState('GET');
+            const [response, setResponse] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const testApi = async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch(endpoint, { method });
+                    const data = await res.json();
+                    setResponse(JSON.stringify(data, null, 2));
+                } catch (error) {
+                    setResponse('Error: ' + error.message);
+                }
+                setLoading(false);
+            };
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">API Testing Tool</h2>
+                    
+                    <div className="space-y-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">Endpoint URL</label>
+                            <input
+                                type="text"
+                                value={endpoint}
+                                onChange={(e) => setEndpoint(e.target.value)}
+                                className="w-full p-3 border rounded-lg font-mono text-sm"
+                            />
+                        </div>
+                        
+                        <div className="flex gap-2">
+                            <select
+                                value={method}
+                                onChange={(e) => setMethod(e.target.value)}
+                                className="p-3 border rounded-lg"
+                            >
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                            </select>
+                            
+                            <button
+                                onClick={testApi}
+                                disabled={loading}
+                                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+                            >
+                                {loading ? '⏳ Testing...' : '🚀 Test API'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-auto" style={{maxHeight: '400px'}}>
+                        <pre>{response || 'Response will appear here...'}</pre>
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                        <h3 className="font-semibold mb-2">Quick Test URLs:</h3>
+                        <div className="space-y-1 text-sm">
+                            <div>🛍️ Products: <code className="text-xs bg-gray-200 px-2 py-1 rounded">http://localhost:8081/api/products</code></div>
+                            <div>👥 Users: <code className="text-xs bg-gray-200 px-2 py-1 rounded">http://localhost:8082/api/users</code></div>
+                            <div>🛒 Cart: <code className="text-xs bg-gray-200 px-2 py-1 rounded">http://localhost:8083/api/cart/1</code></div>
+                            <div>📦 Orders: <code className="text-xs bg-gray-200 px-2 py-1 rounded">http://localhost:8084/api/orders</code></div>
+                            <div>💳 Payments: <code className="text-xs bg-gray-200 px-2 py-1 rounded">http://localhost:8085/api/payments</code></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render App
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

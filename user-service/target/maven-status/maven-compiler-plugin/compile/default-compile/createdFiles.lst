@@ -1,0 +1,11 @@
+com\ecommerce\userservice\config\OpenAPIConfig.class
+com\ecommerce\userservice\entity\User.class
+com\ecommerce\userservice\UserServiceApplication.class
+com\ecommerce\userservice\LoginRequest.class
+com\ecommerce\userservice\controller\UserController.class
+com\ecommerce\userservice\entity\User$UserRole.class
+com\ecommerce\userservice\User.class
+com\ecommerce\userservice\UserResponse.class
+com\ecommerce\userservice\RegisterRequest.class
+com\ecommerce\userservice\repository\UserRepository.class
+com\ecommerce\userservice\service\UserService.class

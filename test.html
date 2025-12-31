@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spring Boot Microservices Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 4px; border-left: 4px solid #007bff; }
+        .error { border-left-color: #dc3545; }
+        .success { border-left-color: #28a745; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>Spring Boot Microservices Test</h1>
+    
+    <h2>Service Health Checks</h2>
+    <button onclick="testEndpoint('http://localhost:8081/health', 'product-health')">Product Service Health</button>
+    <button onclick="testEndpoint('http://localhost:8082/health', 'user-health')">User Service Health</button>
+    <button onclick="testEndpoint('http://localhost:8083/health', 'cart-health')">Cart Service Health</button>
+    
+    <h2>API Tests</h2>
+    <button onclick="testEndpoint('http://localhost:8081/products', 'products-list')">Get Products</button>
+    <button onclick="testEndpoint('http://localhost:8082/users', 'users-list')">Get Users</button>
+    <button onclick="testLogin()">Test Login</button>
+    <button onclick="testCart()">Test Cart</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function testEndpoint(url, resultId) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                displayResult(resultId, {
+                    status: response.status,
+                    url: url,
+                    data: data
+                }, response.ok);
+                
+            } catch (error) {
+                displayResult(resultId, {
+                    error: error.message,
+                    url: url
+                }, false);
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('http://localhost:8082/users/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'john@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                displayResult('login-test', data, response.ok);
+                
+            } catch (error) {
+                displayResult('login-test', { error: error.message }, false);
+            }
+        }
+        
+        async function testCart() {
+            try {
+                const response = await fetch('http://localhost:8083/cart/1/items', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        productId: 1,
+                        productName: 'iPhone 15 Pro Max',
+                        price: 1199.00,
+                        quantity: 1
+                    })
+                });
+                
+                const data = await response.json();
+                displayResult('cart-test', data, response.ok);
+                
+            } catch (error) {
+                displayResult('cart-test', { error: error.message }, false);
+            }
+        }
+        
+        function displayResult(id, data, success) {
+            const results = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <h3>${id}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            results.appendChild(resultDiv);
+        }
+    </script>
+</body>
+</html>
