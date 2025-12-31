@@ -1,6 +1,5 @@
 # E-Commerce Platform with Oracle Database
 
-Production-ready e-commerce microservices platform built with Spring Boot and Oracle Database 23c.
 
 ## Architecture
 
